@@ -3,6 +3,9 @@ spring:
     url: jdbc:postgresql://aws-0-us-east-1.pooler.supabase.com:5432/postgres
     username: postgres.wutihmmqvsgqayuellhn
     password: DBabarrotes
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
   jpa:
     hibernate:
       ddl-auto: update
