@@ -151,11 +151,22 @@ public class LogisticaController {
     @PostMapping("/viajes")
     public ResponseEntity<?> programarViaje(@RequestBody ViajeRequestDTO request) {
         try {
+            // NUEVA VALIDACIÓN DE SEGURIDAD: Evitar viajes duplicados o simultáneos
+            String checkSql = "SELECT COUNT(*) FROM viajes WHERE vehiculo_id = ? AND estado IN ('BORRADOR', 'CARGADO', 'EN_RUTA')";
+            Integer viajesActivos = jdbcTemplate.queryForObject(checkSql, Integer.class, request.getVehiculoId());
+            
+            if (viajesActivos != null && viajesActivos > 0) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Este camión ya tiene un viaje activo o en preparación. Debe liquidar y cerrar el viaje anterior antes de programar uno nuevo."
+                ));
+            }
+
             Long almacenOrigenId = 1L; 
             String estado = "BORRADOR"; 
             String sql = "INSERT INTO viajes (almacen_origen_id, destino, estado, fecha, trabajador_id, vehiculo_id) VALUES (?, ?, ?, ?::date, ?, ?) RETURNING id";
             Long id = jdbcTemplate.queryForObject(sql, Long.class, almacenOrigenId, request.getDestino(), estado,
                 request.getFecha(), request.getTrabajadorId(), request.getVehiculoId());
+            
             return ResponseEntity.ok(Map.of("mensaje", "Viaje programado exitosamente", "id", id));
         } catch (Exception e) {
             e.printStackTrace();
