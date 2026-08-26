@@ -229,4 +229,20 @@ public class LogisticaController {
             return ResponseEntity.internalServerError().body(List.of());
         }
     }
+
+    // --- NUEVO: OBTENER INVENTARIO ACTUAL DE UN VEHÍCULO ESPECÍFICO ---
+    @GetMapping("/vehiculos/{idVehiculo}/inventario")
+    public ResponseEntity<?> obtenerInventarioVehiculo(@PathVariable Long idVehiculo) {
+        try {
+            String sql = "SELECT ic.presentacion_id, p.nombre AS producto_nombre, pre.nombre AS presentacion_nombre, ic.cantidad, pre.precio_venta " +
+                         "FROM inventario_consolidado ic " +
+                         "JOIN presentaciones pre ON ic.presentacion_id = pre.id " +
+                         "JOIN productos p ON pre.producto_id = p.id " +
+                         "WHERE ic.ubicacion_id = ? AND ic.cantidad > 0";
+            return ResponseEntity.ok(jdbcTemplate.queryForList(sql, idVehiculo));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(List.of());
+        }
+    }
 }
