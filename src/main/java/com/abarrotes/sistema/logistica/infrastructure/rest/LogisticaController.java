@@ -35,6 +35,7 @@ public class LogisticaController {
         private String estado;
         private String fecha;
         private String vehiculoPlaca;
+        private Long vehiculoId; // <-- ¡ESTO FALTABA!
         private Long trabajadorId;
     }
     
@@ -85,7 +86,7 @@ public class LogisticaController {
                 request.getMarca(), 
                 request.getModelo(), 
                 request.getCapacidad(), 
-                request.getObservaciones() != null ? request.getObservaciones() : ""); // Protección anti-nulos
+                request.getObservaciones() != null ? request.getObservaciones() : ""); 
             return ResponseEntity.ok(Map.of("mensaje", "Vehículo registrado exitosamente", "id", id));
         } catch (Exception e) {
             e.printStackTrace();
@@ -103,7 +104,7 @@ public class LogisticaController {
                 request.getModelo(), 
                 request.getCapacidad(),
                 request.getEstado() != null ? request.getEstado() : "DISPONIBLE", 
-                request.getObservaciones() != null ? request.getObservaciones() : "", // Protección anti-nulos
+                request.getObservaciones() != null ? request.getObservaciones() : "", 
                 id);
             return ResponseEntity.ok(Map.of("mensaje", "Vehículo actualizado exitosamente"));
         } catch (Exception e) {
@@ -130,7 +131,8 @@ public class LogisticaController {
     // --- ENDPOINTS VIAJES ---
     @GetMapping("/viajes")
     public ResponseEntity<List<ViajeDTO>> obtenerViajes() {
-        String sql = "SELECT v.id, v.destino, v.estado, v.fecha, veh.placa AS vehiculo_placa, v.trabajador_id " +
+        // <-- ¡AQUÍ AGREGAMOS v.vehiculo_id A LA CONSULTA!
+        String sql = "SELECT v.id, v.destino, v.estado, v.fecha, v.vehiculo_id, veh.placa AS vehiculo_placa, v.trabajador_id " +
                      "FROM viajes v JOIN vehiculos veh ON v.vehiculo_id = veh.id ORDER BY v.fecha DESC";
         List<ViajeDTO> lista = jdbcTemplate.query(sql, (rs, rowNum) -> {
             ViajeDTO dto = new ViajeDTO();
@@ -139,6 +141,7 @@ public class LogisticaController {
             dto.setEstado(rs.getString("estado"));
             if(rs.getDate("fecha") != null) { dto.setFecha(rs.getDate("fecha").toString()); }
             dto.setVehiculoPlaca(rs.getString("vehiculo_placa"));
+            dto.setVehiculoId(rs.getLong("vehiculo_id")); // <-- ¡Y AQUÍ LO GUARDAMOS EN EL DTO!
             dto.setTrabajadorId(rs.getLong("trabajador_id"));
             return dto;
         });
