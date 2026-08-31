@@ -27,8 +27,9 @@ public class HistorialVentasController {
                     "TO_CHAR(v.fecha_hora, 'DD/MM/YYYY HH:MI:SS AM') as fecha_hora, " +
                     "v.total " +
                     "FROM ventas v " +
-                    "JOIN clientes c ON v.cliente_id = c.id " +
-                    "JOIN viajes vj ON v.viaje_id = vj.id " +
+                    // SOLUCIÓN: Usamos LEFT JOIN para incluir ventas de mostrador (sin viaje) y sin cliente
+                    "LEFT JOIN clientes c ON v.cliente_id = c.id " +
+                    "LEFT JOIN viajes vj ON v.viaje_id = vj.id " +
                     "ORDER BY v.fecha_hora DESC";
             
             return ResponseEntity.ok(jdbcTemplate.queryForList(sql));
