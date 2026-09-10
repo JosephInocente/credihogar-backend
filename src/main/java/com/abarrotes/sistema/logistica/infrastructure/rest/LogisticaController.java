@@ -35,8 +35,9 @@ public class LogisticaController {
         private String estado;
         private String fecha;
         private String vehiculoPlaca;
-        private Long vehiculoId; // <-- ¡ESTO FALTABA!
+        private Long vehiculoId;
         private Long trabajadorId;
+        private Long gestorId; // NUEVO: Se agrega el Gestor
     }
     
     @Data
@@ -44,6 +45,7 @@ public class LogisticaController {
         private String destino;
         private Long vehiculoId;
         private Long trabajadorId;
+        private Long gestorId; // NUEVO: Se recibe el Gestor desde el Frontend
         private String fecha; 
     }
 
@@ -131,8 +133,8 @@ public class LogisticaController {
     // --- ENDPOINTS VIAJES ---
     @GetMapping("/viajes")
     public ResponseEntity<List<ViajeDTO>> obtenerViajes() {
-        // <-- ¡AQUÍ AGREGAMOS v.vehiculo_id A LA CONSULTA!
-        String sql = "SELECT v.id, v.destino, v.estado, v.fecha, v.vehiculo_id, veh.placa AS vehiculo_placa, v.trabajador_id " +
+        // ACTUALIZADO: Agregamos v.gestor_id a la consulta
+        String sql = "SELECT v.id, v.destino, v.estado, v.fecha, v.vehiculo_id, veh.placa AS vehiculo_placa, v.trabajador_id, v.gestor_id " +
                      "FROM viajes v JOIN vehiculos veh ON v.vehiculo_id = veh.id ORDER BY v.fecha DESC";
         List<ViajeDTO> lista = jdbcTemplate.query(sql, (rs, rowNum) -> {
             ViajeDTO dto = new ViajeDTO();
@@ -141,8 +143,13 @@ public class LogisticaController {
             dto.setEstado(rs.getString("estado"));
             if(rs.getDate("fecha") != null) { dto.setFecha(rs.getDate("fecha").toString()); }
             dto.setVehiculoPlaca(rs.getString("vehiculo_placa"));
-            dto.setVehiculoId(rs.getLong("vehiculo_id")); // <-- ¡Y AQUÍ LO GUARDAMOS EN EL DTO!
+            dto.setVehiculoId(rs.getLong("vehiculo_id"));
             dto.setTrabajadorId(rs.getLong("trabajador_id"));
+            
+            // NUEVO: Guardar el Gestor
+            if(rs.getObject("gestor_id") != null) {
+                dto.setGestorId(rs.getLong("gestor_id"));
+            }
             return dto;
         });
         return ResponseEntity.ok(lista);
@@ -151,7 +158,6 @@ public class LogisticaController {
     @PostMapping("/viajes")
     public ResponseEntity<?> programarViaje(@RequestBody ViajeRequestDTO request) {
         try {
-            // NUEVA VALIDACIÓN DE SEGURIDAD: Evitar viajes duplicados o simultáneos
             String checkSql = "SELECT COUNT(*) FROM viajes WHERE vehiculo_id = ? AND estado IN ('BORRADOR', 'CARGADO', 'EN_RUTA')";
             Integer viajesActivos = jdbcTemplate.queryForObject(checkSql, Integer.class, request.getVehiculoId());
             
@@ -163,9 +169,11 @@ public class LogisticaController {
 
             Long almacenOrigenId = 1L; 
             String estado = "BORRADOR"; 
-            String sql = "INSERT INTO viajes (almacen_origen_id, destino, estado, fecha, trabajador_id, vehiculo_id) VALUES (?, ?, ?, ?::date, ?, ?) RETURNING id";
+            
+            // ACTUALIZADO: Insertar también el gestor_id
+            String sql = "INSERT INTO viajes (almacen_origen_id, destino, estado, fecha, trabajador_id, gestor_id, vehiculo_id) VALUES (?, ?, ?, ?::date, ?, ?, ?) RETURNING id";
             Long id = jdbcTemplate.queryForObject(sql, Long.class, almacenOrigenId, request.getDestino(), estado,
-                request.getFecha(), request.getTrabajadorId(), request.getVehiculoId());
+                request.getFecha(), request.getTrabajadorId(), request.getGestorId(), request.getVehiculoId());
             
             return ResponseEntity.ok(Map.of("mensaje", "Viaje programado exitosamente", "id", id));
         } catch (Exception e) {
@@ -207,17 +215,14 @@ public class LogisticaController {
                 jdbcTemplate.update("INSERT INTO viaje_detalles (viaje_id, presentacion_id, cantidad) VALUES (?, ?, ?)",
                         viajeId, item.getPresentacionId(), item.getCantidad());
 
-                // Descontar del Almacén Principal
                 jdbcTemplate.update("UPDATE inventario_consolidado SET cantidad = cantidad - ? WHERE ubicacion_id = 1 AND presentacion_id = ?",
                         item.getCantidad(), item.getPresentacionId());
 
-                // Sumar al inventario del Vehículo
                 String upsertInventarioCarro = "INSERT INTO inventario_consolidado (ubicacion_id, presentacion_id, cantidad) VALUES (?, ?, ?) " +
                                                "ON CONFLICT (ubicacion_id, presentacion_id) DO UPDATE SET cantidad = inventario_consolidado.cantidad + ?";
                 jdbcTemplate.update(upsertInventarioCarro, vehiculoId, item.getPresentacionId(), item.getCantidad(), item.getCantidad());
             }
 
-            // Actualizar estado
             jdbcTemplate.update("UPDATE viajes SET estado = 'CARGADO' WHERE id = ?", viajeId);
             jdbcTemplate.update("UPDATE vehiculos SET estado = 'EN_RUTA' WHERE id = ?", vehiculoId);
 
@@ -244,7 +249,6 @@ public class LogisticaController {
         }
     }
 
-    // --- NUEVO: OBTENER INVENTARIO ACTUAL DE UN VEHÍCULO ESPECÍFICO ---
     @GetMapping("/vehiculos/{idVehiculo}/inventario")
     public ResponseEntity<?> obtenerInventarioVehiculo(@PathVariable Long idVehiculo) {
         try {
