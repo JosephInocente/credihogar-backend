@@ -14,9 +14,11 @@ public class HistorialVentasController {
 
     private final JdbcTemplate jdbcTemplate;
 
-    // 1. Obtener la lista completa de ventas con datos del cliente y el viaje
+    // Obtener la lista completa o filtrada por el rol del usuario
     @GetMapping
-    public ResponseEntity<?> listarHistorialClientesYVentas() {
+    public ResponseEntity<?> listarHistorialClientesYVentas(
+            @RequestParam(required = false) Long usuarioId,
+            @RequestParam(required = false) String rol) {
         try {
             String sql = "SELECT " +
                     "v.id AS venta_id, " +
@@ -27,10 +29,15 @@ public class HistorialVentasController {
                     "TO_CHAR(v.fecha_hora, 'DD/MM/YYYY HH:MI:SS AM') as fecha_hora, " +
                     "v.total " +
                     "FROM ventas v " +
-                    // SOLUCIÓN: Usamos LEFT JOIN para incluir ventas de mostrador (sin viaje) y sin cliente
                     "LEFT JOIN clientes c ON v.cliente_id = c.id " +
-                    "LEFT JOIN viajes vj ON v.viaje_id = vj.id " +
-                    "ORDER BY v.fecha_hora DESC";
+                    "LEFT JOIN viajes vj ON v.viaje_id = vj.id ";
+
+            // Si es GESTOR, concatenamos la cláusula WHERE para filtrar solo sus ventas
+            if ("GESTOR".equals(rol) && usuarioId != null) {
+                sql += "WHERE v.trabajador_id = " + usuarioId + " ";
+            }
+            
+            sql += "ORDER BY v.fecha_hora DESC";
             
             return ResponseEntity.ok(jdbcTemplate.queryForList(sql));
         } catch (Exception e) {
@@ -38,7 +45,7 @@ public class HistorialVentasController {
         }
     }
 
-    // 2. Obtener los detalles específicos de un ticket
+    // Obtener los detalles específicos de un ticket
     @GetMapping("/{ventaId}/ticket")
     public ResponseEntity<?> obtenerDetalleTicket(@PathVariable Long ventaId) {
         try {
