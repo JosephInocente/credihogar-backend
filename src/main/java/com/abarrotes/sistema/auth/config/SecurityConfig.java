@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/clientes/**").hasAnyRole("GERENTE", "GESTOR")
                 .requestMatchers("/api/ventas/**").hasAnyRole("GERENTE", "GESTOR")
                 .requestMatchers("/api/pos/**").hasAnyRole("GERENTE", "GESTOR")
+                .requestMatchers("/api/solicitudes/**").hasAnyRole("GERENTE", "GESTOR") // <-- NUEVA LÍNEA AGREGADA
                 
                 .anyRequest().authenticated()
             )
