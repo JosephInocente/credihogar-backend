@@ -37,19 +37,19 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll() 
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 
-                // Agrupamos la ruta completa de usuarios para el GERENTE
+                // RUTAS ADMINISTRATIVAS: EXCLUSIVAS DEL GERENTE
                 .requestMatchers("/api/usuarios", "/api/usuarios/**").hasRole("GERENTE")
-                
                 .requestMatchers("/api/productos/**").hasRole("GERENTE")
                 .requestMatchers("/api/inventario/**").hasRole("GERENTE")
                 .requestMatchers("/api/vehiculos/**").hasRole("GERENTE")
-                .requestMatchers("/api/viajes/**").hasRole("GERENTE")
                 .requestMatchers("/api/dashboard/**").hasRole("GERENTE")
-                .requestMatchers("/api/logistica/**").hasRole("GERENTE") 
                 
-                .requestMatchers("/api/clientes/**").hasAnyRole("GERENTE", "TRABAJADOR")
-                .requestMatchers("/api/ventas/**").hasAnyRole("GERENTE", "TRABAJADOR")
-                .requestMatchers("/api/pos/**").hasAnyRole("GERENTE", "TRABAJADOR")
+                // RUTAS OPERATIVAS: COMPARTIDAS ENTRE GERENTE Y GESTOR
+                .requestMatchers("/api/logistica/**").hasAnyRole("GERENTE", "GESTOR") 
+                .requestMatchers("/api/viajes/**").hasAnyRole("GERENTE", "GESTOR")
+                .requestMatchers("/api/clientes/**").hasAnyRole("GERENTE", "GESTOR")
+                .requestMatchers("/api/ventas/**").hasAnyRole("GERENTE", "GESTOR")
+                .requestMatchers("/api/pos/**").hasAnyRole("GERENTE", "GESTOR")
                 
                 .anyRequest().authenticated()
             )
