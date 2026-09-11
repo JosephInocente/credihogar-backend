@@ -37,7 +37,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll() 
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 
-                // RUTAS ADMINISTRATIVAS: EXCLUSIVAS DEL GERENTE
+                // NUEVO: Permitimos al GESTOR consultar la lista de usuarios (GET) para poder buscar su propio ID
+                .requestMatchers(HttpMethod.GET, "/api/usuarios").hasAnyRole("GERENTE", "GESTOR")
+                
+                // RUTAS ADMINISTRATIVAS: EXCLUSIVAS DEL GERENTE (Crear, editar, eliminar usuarios sigue bloqueado)
                 .requestMatchers("/api/usuarios", "/api/usuarios/**").hasRole("GERENTE")
                 .requestMatchers("/api/productos/**").hasRole("GERENTE")
                 .requestMatchers("/api/inventario/**").hasRole("GERENTE")
