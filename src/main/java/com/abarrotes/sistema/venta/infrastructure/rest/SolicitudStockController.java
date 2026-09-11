@@ -53,7 +53,8 @@ public class SolicitudStockController {
             @RequestParam(required = false) Long usuarioId,
             @RequestParam(required = false) String rol) {
         try {
-            String sql = "SELECT s.id, s.fecha_hora, s.estado, s.notas, u.username as gestor, " +
+            // Se agregó s.motivo_rechazo a la consulta
+            String sql = "SELECT s.id, s.fecha_hora, s.estado, s.notas, s.motivo_rechazo, u.username as gestor, " +
                          "(SELECT COUNT(*) FROM solicitud_detalles WHERE solicitud_id = s.id) as total_items " +
                          "FROM solicitudes_stock s " +
                          "JOIN usuarios u ON s.gestor_id = u.id ";
@@ -88,7 +89,14 @@ public class SolicitudStockController {
     public ResponseEntity<?> cambiarEstado(@PathVariable Long id, @RequestBody Map<String, String> body) {
         try {
             String nuevoEstado = body.get("estado");
-            jdbcTemplate.update("UPDATE solicitudes_stock SET estado = ? WHERE id = ?", nuevoEstado, id);
+            String motivo = body.get("motivo"); // Nuevo campo recibido desde React
+
+            // Si envían un motivo de rechazo, lo guardamos en la base de datos
+            if (motivo != null && !motivo.trim().isEmpty()) {
+                jdbcTemplate.update("UPDATE solicitudes_stock SET estado = ?, motivo_rechazo = ? WHERE id = ?", nuevoEstado, motivo, id);
+            } else {
+                jdbcTemplate.update("UPDATE solicitudes_stock SET estado = ? WHERE id = ?", nuevoEstado, id);
+            }
             return ResponseEntity.ok(Map.of("mensaje", "Estado actualizado"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
