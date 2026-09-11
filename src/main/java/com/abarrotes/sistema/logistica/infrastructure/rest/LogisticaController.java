@@ -37,7 +37,7 @@ public class LogisticaController {
         private String vehiculoPlaca;
         private Long vehiculoId;
         private Long trabajadorId;
-        private Long gestorId; // NUEVO: Se agrega el Gestor
+        private Long gestorId;
     }
     
     @Data
@@ -45,7 +45,7 @@ public class LogisticaController {
         private String destino;
         private Long vehiculoId;
         private Long trabajadorId;
-        private Long gestorId; // NUEVO: Se recibe el Gestor desde el Frontend
+        private Long gestorId;
         private String fecha; 
     }
 
@@ -133,7 +133,6 @@ public class LogisticaController {
     // --- ENDPOINTS VIAJES ---
     @GetMapping("/viajes")
     public ResponseEntity<List<ViajeDTO>> obtenerViajes() {
-        // ACTUALIZADO: Agregamos v.gestor_id a la consulta
         String sql = "SELECT v.id, v.destino, v.estado, v.fecha, v.vehiculo_id, veh.placa AS vehiculo_placa, v.trabajador_id, v.gestor_id " +
                      "FROM viajes v JOIN vehiculos veh ON v.vehiculo_id = veh.id ORDER BY v.fecha DESC";
         List<ViajeDTO> lista = jdbcTemplate.query(sql, (rs, rowNum) -> {
@@ -145,8 +144,6 @@ public class LogisticaController {
             dto.setVehiculoPlaca(rs.getString("vehiculo_placa"));
             dto.setVehiculoId(rs.getLong("vehiculo_id"));
             dto.setTrabajadorId(rs.getLong("trabajador_id"));
-            
-            // NUEVO: Guardar el Gestor
             if(rs.getObject("gestor_id") != null) {
                 dto.setGestorId(rs.getLong("gestor_id"));
             }
@@ -170,7 +167,6 @@ public class LogisticaController {
             Long almacenOrigenId = 1L; 
             String estado = "BORRADOR"; 
             
-            // ACTUALIZADO: Insertar también el gestor_id
             String sql = "INSERT INTO viajes (almacen_origen_id, destino, estado, fecha, trabajador_id, gestor_id, vehiculo_id) VALUES (?, ?, ?, ?::date, ?, ?, ?) RETURNING id";
             Long id = jdbcTemplate.queryForObject(sql, Long.class, almacenOrigenId, request.getDestino(), estado,
                 request.getFecha(), request.getTrabajadorId(), request.getGestorId(), request.getVehiculoId());
